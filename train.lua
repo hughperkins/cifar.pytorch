@@ -45,14 +45,20 @@ end
 
 print(c.blue '==>' ..' configuring model')
 local model = nil
+local epoch = 1
 
 paths.mkdir(opt.save)
 
 if opt.continue == 1 then
-  local model_filename = sys.execute('ls -t ' .. opt.save .. '/model_e*.net 2>/dev/null | head -n 1')
+  local model_filename = sys.execute('cd ' .. opt.save .. '; ls -t model_e*.net 2>/dev/null | head -n 1')
   if model_filename ~= '' then
     model = torch.load(paths.concat(opt.save, model_filename))
     print('loaded model', model_filename)
+    model_filename = model_filename:gsub('model_e', '')
+    model_filename = model_filename:gsub('.net', '')
+    local modelepoch = tonumber(model_filename)
+    epoch = modelepoch + 1
+    print('starting from epoch', epoch)
   end
 end
 
@@ -101,7 +107,7 @@ optimState = {
 
 function train()
   model:training()
-  epoch = epoch or 1
+--  epoch = epoch or 1
 
   -- drop learning rate every "epoch_step" epochs
   if epoch % opt.epoch_step == 0 then optimState.learningRate = optimState.learningRate/2 end
@@ -145,7 +151,7 @@ function train()
   train_acc = confusion.totalValid * 100
 
   confusion:zero()
-  epoch = epoch + 1
+--  epoch = epoch + 1
 end
 
 
@@ -198,20 +204,22 @@ function test()
     file:close()
   end
 
-  -- save model every 50 epochs
---  if epoch % 50 == 0 then
-    local filename = paths.concat(opt.save, 'model_e' .. epoch .. '.net')
-    print('==> saving model to '..filename)
-    torch.save(filename, model:get(3):clearState())
---  end
-
   confusion:zero()
 end
 
 
-for i=1,opt.max_epoch do
-  train()
-  test()
+--for i=1,opt.max_epoch do
+while epoch <= opt.max_epoch do
+  train(epoch)
+  test(epoch)
+
+-- save model every 50 epochs
+--  if epoch % 50 == 0 then
+  local filename = paths.concat(opt.save, 'model_e' .. epoch .. '.net')
+  print('==> saving model to '..filename)
+  torch.save(filename, model:get(3):clearState())
+--  end
+  epoch = epoch + 1
 end
 
 
