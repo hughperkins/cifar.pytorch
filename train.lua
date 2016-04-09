@@ -1,6 +1,8 @@
 require 'xlua'
 require 'optim'
 require 'cunn'
+require 'paths'
+require 'sys'
 dofile './provider.lua'
 local c = require 'trepl.colorize'
 
@@ -15,6 +17,7 @@ opt = lapp[[
    --model                    (default vgg_bn_drop)     model name
    --max_epoch                (default 300)           maximum number of iterations
    --backend                  (default nn)            backend
+   --continue                 (default 1)            continue from saved model
 ]]
 
 print(opt)
@@ -41,11 +44,25 @@ do -- data augmentation module
 end
 
 print(c.blue '==>' ..' configuring model')
-local model = nn.Sequential()
-model:add(nn.BatchFlip():float())
-model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-model:add(dofile('models/'..opt.model..'.lua'):cuda())
-model:get(2).updateGradInput = function(input) return end
+local model = nil
+
+paths.mkdir(opt.save)
+
+if opt.continue == 1 then
+  local model_filename = sys.execute('ls -t ' .. opt.save .. '/model_e*.net 2>/dev/null | head -n 1')
+  if model_filename ~= '' then
+    model = torch.load(paths.concat(opt.save, model_filename))
+    print('loaded model', model_filename)
+  end
+end
+
+if model == nil then
+  model = nn.Sequential()
+  model:add(nn.BatchFlip():float())
+  model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
+  model:add(dofile('models/'..opt.model..'.lua'):cuda())
+  model:get(2).updateGradInput = function(input) return end
+end
 
 if opt.backend == 'cudnn' then
    require 'cudnn'
@@ -62,7 +79,6 @@ provider.testData.data = provider.testData.data:float()
 confusion = optim.ConfusionMatrix(10)
 
 print('Will save at '..opt.save)
-paths.mkdir(opt.save)
 testLogger = optim.Logger(paths.concat(opt.save, 'test.log'))
 testLogger:setNames{'% mean class accuracy (train set)', '% mean class accuracy (test set)'}
 testLogger.showPlot = false
@@ -99,6 +115,7 @@ function train()
 
   local tic = torch.tic()
   for t,v in ipairs(indices) do
+    if t <= 3 then
     xlua.progress(t, #indices)
 
     local inputs = provider.trainData.data:index(1,v)
@@ -118,6 +135,7 @@ function train()
       return f,gradParameters
     end
     optim.sgd(feval, parameters, optimState)
+    end
   end
 
   confusion:updateValids()
@@ -181,11 +199,11 @@ function test()
   end
 
   -- save model every 50 epochs
-  if epoch % 50 == 0 then
-    local filename = paths.concat(opt.save, 'model.net')
+--  if epoch % 50 == 0 then
+    local filename = paths.concat(opt.save, 'model_e' .. epoch .. '.net')
     print('==> saving model to '..filename)
     torch.save(filename, model:get(3):clearState())
-  end
+--  end
 
   confusion:zero()
 end
