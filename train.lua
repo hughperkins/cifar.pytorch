@@ -48,6 +48,9 @@ local model = nil
 local epoch = 1
 
 paths.mkdir(opt.save)
+if opt.backend == 'cudnn' then
+   require 'cudnn'
+end
 
 if opt.continue == 1 then
   local model_filename = sys.execute('cd ' .. opt.save .. '; ls -t model_e*.net 2>/dev/null | head -n 1')
@@ -71,7 +74,6 @@ if model == nil then
 end
 
 if opt.backend == 'cudnn' then
-   require 'cudnn'
    cudnn.convert(model:get(3), cudnn)
 end
 
