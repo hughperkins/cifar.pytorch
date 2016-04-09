@@ -76,6 +76,7 @@ if model == nil then
      cudnn.convert(model:get(3), cudnn)
   end
 end
+model:get(2).updateGradInput = function(input) return end
 
 print(model)
 
