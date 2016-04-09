@@ -66,15 +66,15 @@ if opt.continue == 1 then
 end
 
 if model == nil then
+  print('Creating initial net')
   model = nn.Sequential()
   model:add(nn.BatchFlip():float())
   model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
   model:add(dofile('models/'..opt.model..'.lua'):cuda())
   model:get(2).updateGradInput = function(input) return end
-end
-
-if opt.backend == 'cudnn' then
-   cudnn.convert(model:get(3), cudnn)
+  if opt.backend == 'cudnn' then
+     cudnn.convert(model:get(3), cudnn)
+  end
 end
 
 print(model)
