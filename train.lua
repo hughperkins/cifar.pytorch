@@ -19,6 +19,7 @@ opt = lapp[[
    --max_epoch                (default 300)           maximum number of iterations
    --backend                  (default nn)            backend
    --continue                 (default 1)            continue from saved model
+   --fastest                  (default 0)            cudnn fastest
 ]]
 
 print(opt)
@@ -48,7 +49,12 @@ print(c.blue '==>' ..' configuring model')
 
 paths.mkdir(opt.save)
 if opt.backend == 'cudnn' then
-   require 'cudnn'
+  require 'cudnn'
+  if opt.fastest == 1 then
+    cudnn.fastest = true
+    cudnn.benchmark = true
+    print('activated cudnn.fastest cudnn.benchmark')
+  end
 end
 
 local epoch = 1
