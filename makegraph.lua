@@ -8,7 +8,7 @@ cmd:option('-savedir', 'logs', 'save dir')
 local opt = cmd:parse(arg)
 
 local savedir = opt.savedir
-print('savedir', savedir)
+--print('savedir', savedir)
 
 local trainValues = {}
 local testValues = {}
@@ -23,7 +23,7 @@ for line in io.lines(savedir .. '/res.log') do
     local epoch = tonumber(line:gmatch('epoch=(%d+)')())
     local trainacc = tonumber(line:gmatch('trainacc=([0-9.]+)')())
     local testacc = tonumber(line:gmatch('testacc=([0-9.]+)')())
-    print('epoch', epoch, 'trainacc', trainacc, 'testacc', testacc)
+--    print('epoch', epoch, 'trainacc', trainacc, 'testacc', testacc)
     trainValues[epoch] = trainacc
     testValues[epoch] = testacc
     minEpoch = minEpoch or epoch
@@ -40,17 +40,10 @@ for epoch=minEpoch,maxEpoch do
   trainAcc[epoch - minEpoch + 1] = trainValues[epoch]
   testAcc[epoch - minEpoch + 1] = testValues[epoch]
 end
-print('trainAcc', trainAcc)
+--print('trainAcc', trainAcc)
 
 local myplot = gnuplot.pngfigure(savedir .. '/res.png')
 gnuplot.title('CIFAR10 Accuracy')
---gnuplot.raw('set xlabel "x label 1"')
---gnuplot.raw('set ylabel "y label 1"')
---gnuplot.raw('set y2label "y label 2"')
-----gnuplot.raw('set yrange[0:100]')
---gnuplot.raw('set y2tics')
---gnuplot.raw('set xtics 3')
---gnuplot.raw('set y2range[0:300]')
 local plots = {}
 table.insert(plots, {"train", epochs, trainAcc, 'lines'})
 table.insert(plots, {"test", epochs, testAcc, 'lines'})
