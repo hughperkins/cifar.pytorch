@@ -76,6 +76,7 @@ if opt.continue == 1 then
     print('learning state will start from ' .. optimState.learningRate)
     epoch = restart_epoch + 1
     print('starting from epoch', epoch)
+    sys.execute('echo restart file=' .. restart_filename .. ' epoch=' .. epoch .. ' learningrate=' .. optimState.learningRate .. ' >> ' .. opt.save .. '/res.log')
   end
 end
 
