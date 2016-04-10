@@ -44,18 +44,23 @@ do -- data augmentation module
 end
 
 print(c.blue '==>' ..' configuring model')
-local model = nil
-local epoch = 1
 
 paths.mkdir(opt.save)
 if opt.backend == 'cudnn' then
    require 'cudnn'
 end
 
+local epoch = 1
+
+local model = nn.Sequential()
+model:add(nn.BatchFlip():float())
+model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
+model:get(2).updateGradInput = function(input) return end
+
 if opt.continue == 1 then
   local model_filename = sys.execute('cd ' .. opt.save .. '; ls -t model_e*.net 2>/dev/null | head -n 1')
   if model_filename ~= '' then
-    model = torch.load(paths.concat(opt.save, model_filename))
+    model:add(torch.load(paths.concat(opt.save, model_filename)))
     print('loaded model', model_filename)
     model_filename = model_filename:gsub('model_e', '')
     model_filename = model_filename:gsub('.net', '')
@@ -65,18 +70,13 @@ if opt.continue == 1 then
   end
 end
 
-if model == nil then
+if #model == 2 then
   print('Creating initial net')
-  model = nn.Sequential()
-  model:add(nn.BatchFlip():float())
-  model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
   model:add(dofile('models/'..opt.model..'.lua'):cuda())
-  model:get(2).updateGradInput = function(input) return end
   if opt.backend == 'cudnn' then
      cudnn.convert(model:get(3), cudnn)
   end
 end
-model:get(2).updateGradInput = function(input) return end
 
 print(model)
 
@@ -108,9 +108,8 @@ optimState = {
 }
 
 
-function train()
+function train(epoch)
   model:training()
---  epoch = epoch or 1
 
   -- drop learning rate every "epoch_step" epochs
   if epoch % opt.epoch_step == 0 then optimState.learningRate = optimState.learningRate/2 end
@@ -124,7 +123,6 @@ function train()
 
   local tic = torch.tic()
   for t,v in ipairs(indices) do
-    if t <= 3 then
     xlua.progress(t, #indices)
 
     local inputs = provider.trainData.data:index(1,v)
@@ -144,7 +142,6 @@ function train()
       return f,gradParameters
     end
     optim.sgd(feval, parameters, optimState)
-    end
   end
 
   confusion:updateValids()
@@ -158,7 +155,7 @@ function train()
 end
 
 
-function test()
+function test(epoch)
   -- disable flips, dropouts and batch normalization
   model:evaluate()
   print(c.blue '==>'.." testing")
