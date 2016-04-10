@@ -3,6 +3,7 @@ require 'optim'
 require 'cunn'
 require 'paths'
 require 'sys'
+require 'model_helper'
 dofile './provider.lua'
 local c = require 'trepl.colorize'
 
@@ -58,14 +59,11 @@ model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
 model:get(2).updateGradInput = function(input) return end
 
 if opt.continue == 1 then
-  local model_filename = sys.execute('cd ' .. opt.save .. '; ls -t model_e*.net 2>/dev/null | head -n 1')
-  if model_filename ~= '' then
-    model:add(torch.load(paths.concat(opt.save, model_filename)))
-    print('loaded model', model_filename)
-    model_filename = model_filename:gsub('model_e', '')
-    model_filename = model_filename:gsub('.net', '')
-    local modelepoch = tonumber(model_filename)
-    epoch = modelepoch + 1
+  local restart_filename, restart_epoch = model_helper.get_restart_info(opt.save, 'model_e*.net')
+  if restart_filename ~= nil then
+    model:add(torch.load(paths.concat(opt.save, restart_filename)))
+    print('loaded model', restart_filename)
+    epoch = restart_epoch + 1
     print('starting from epoch', epoch)
   end
 end
@@ -207,7 +205,6 @@ function test(epoch)
   confusion:zero()
 end
 
-
 --for i=1,opt.max_epoch do
 while epoch <= opt.max_epoch do
   train(epoch)
@@ -218,6 +215,7 @@ while epoch <= opt.max_epoch do
   local filename = paths.concat(opt.save, 'model_e' .. epoch .. '.net')
   print('==> saving model to '..filename)
   torch.save(filename, model:get(3):clearState())
+  model_helper.purge_old_models(opt.save, epoch, 10, 'model_e*.net')
 --  end
   epoch = epoch + 1
 end
