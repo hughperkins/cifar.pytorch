@@ -52,6 +52,13 @@ if opt.backend == 'cudnn' then
 end
 
 local epoch = 1
+print(c.blue'==>' ..' configuring optimizer')
+optimState = {
+  learningRate = opt.learningRate,
+  weightDecay = opt.weightDecay,
+  momentum = opt.momentum,
+  learningRateDecay = opt.learningRateDecay,
+}
 
 local model = nn.Sequential()
 model:add(nn.BatchFlip():float())
@@ -63,6 +70,10 @@ if opt.continue == 1 then
   if restart_filename ~= nil then
     model:add(torch.load(paths.concat(opt.save, restart_filename)))
     print('loaded model', restart_filename)
+    for epoch=1,restart_epoch do
+      if epoch % opt.epoch_step == 0 then optimState.learningRate = optimState.learningRate/2 end
+    end
+    print('learning state will start from ' .. optimState.learningRate)
     epoch = restart_epoch + 1
     print('starting from epoch', epoch)
   end
@@ -97,21 +108,12 @@ print(c.blue'==>' ..' setting criterion')
 criterion = nn.CrossEntropyCriterion():cuda()
 
 
-print(c.blue'==>' ..' configuring optimizer')
-optimState = {
-  learningRate = opt.learningRate,
-  weightDecay = opt.weightDecay,
-  momentum = opt.momentum,
-  learningRateDecay = opt.learningRateDecay,
-}
-
-
 function train(epoch)
   model:training()
 
   -- drop learning rate every "epoch_step" epochs
   if epoch % opt.epoch_step == 0 then optimState.learningRate = optimState.learningRate/2 end
-  
+
   print(c.blue '==>'.." online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
 
   local targets = torch.CudaTensor(opt.batchSize)
@@ -129,7 +131,7 @@ function train(epoch)
     local feval = function(x)
       if x ~= parameters then parameters:copy(x) end
       gradParameters:zero()
-      
+
       local outputs = model:forward(inputs)
       local f = criterion:forward(outputs, targets)
       local df_do = criterion:backward(outputs, targets)
@@ -166,7 +168,7 @@ function test(epoch)
 
   confusion:updateValids()
   print('Test accuracy:', confusion.totalValid * 100)
-  
+
   sys.execute('echo epoch=' .. epoch .. ' trainacc=' .. train_acc .. ' testacc=' .. (confusion.totalValid * 100) .. ' >> ' .. opt.save .. '/res.log')
 
   if testLogger then
@@ -222,5 +224,3 @@ while epoch <= opt.max_epoch do
 --  end
   epoch = epoch + 1
 end
-
-
