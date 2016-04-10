@@ -150,6 +150,7 @@ function train(epoch)
 
   confusion:zero()
 --  epoch = epoch + 1
+--  return confusion.totalValid * 100
 end
 
 
@@ -166,6 +167,8 @@ function test(epoch)
   confusion:updateValids()
   print('Test accuracy:', confusion.totalValid * 100)
   
+  sys.execute('echo epoch=' .. epoch .. ' trainacc=' .. train_acc .. ' testacc=' .. (confusion.totalValid * 100) .. ' >> ' .. opt.save .. '/res.log')
+
   if testLogger then
     paths.mkdir(opt.save)
     testLogger:add{train_acc, confusion.totalValid * 100}
