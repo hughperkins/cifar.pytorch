@@ -1,6 +1,7 @@
 require 'xlua'
 require 'optim'
 require 'cunn'
+require 'image'
 require 'batchflip'
 
 local Train = torch.class('Train')
@@ -12,7 +13,6 @@ local Train = torch.class('Train')
 --  momentum
 function Train.__init(self, opt)
   self.opt = opt
-
   local model = nn.Sequential()
   model:add(nn.BatchFlip():float())
   model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
@@ -39,35 +39,31 @@ end
 
 function Train.trainBatch(self, learningRate, inputs, targets)
   local opt = self.opt
-  local model = self.model
-  local optimState = self.optimState
 
-  optimState.learningRate = learningRate
-  model:training()
-
+  self.optimState.learningRate = learningRate
+  self.model:training()
+  self.cutargets = self.cutargets or torch.CudaTensor(targets:size())
+  self.cutargets:resize(targets:size())
+  self.cutargets:copy(targets)
   local feval = function(x)
     if x ~= self.parameters then self.parameters:copy(x) end
     self.gradParameters:zero()
     
-    local outputs = model:forward(inputs)
-    local f = criterion:forward(outputs, targets)
-    local df_do = criterion:backward(outputs, targets)
-    model:backward(inputs, df_do)
-
-    confusion:batchAdd(outputs, targets)
+    local outputs = self.model:forward(inputs)
+    local f = self.criterion:forward(outputs, self.cutargets)
+    local df_do = self.criterion:backward(outputs, self.cutargets)
+    self.model:backward(inputs, df_do)
 
     return f, self.gradParameters
   end
-  optim.sgd(feval, self.parameters, optimState)
+  optim.sgd(feval, self.parameters, self.optimState)
 end
 
 function Train.testBatch(self, inputs)
-  local model = self.model
-
   -- disable flips, dropouts and batch normalization
-  model:evaluate()
-  local outputs = model:forward(inputs)
-  return outputs
+  self.model:evaluate()
+  local outputs = self.model:forward(inputs)
+  return outputs:byte()
 end
 
 function Train.save(self, filepath)
