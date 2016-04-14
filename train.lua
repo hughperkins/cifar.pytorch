@@ -4,14 +4,14 @@ require 'cunn'
 require 'image'
 require 'batchflip'
 
-local Train = torch.class('Train')
+local Trainer = torch.class('Trainer')
 
 -- opt is dict of:
 --  backend
 --  model
 --  weightDecay
 --  momentum
-function Train.__init(self, opt)
+function Trainer.__init(self, opt)
   self.opt = opt
   local model = nn.Sequential()
   model:add(nn.BatchFlip():float())
@@ -20,7 +20,12 @@ function Train.__init(self, opt)
   model:get(2).updateGradInput = function(input) return end
 
   if opt.backend == 'cudnn' then
+     print('using cudnn')
      require 'cudnn'
+     if opt.cudnnfastest then
+       print('Using cudnn \'fastest\' mode')
+       cudnn.fastest = true
+     end
      cudnn.convert(model:get(3), cudnn)
   end
   self.model = model
@@ -37,7 +42,7 @@ function Train.__init(self, opt)
   }
 end
 
-function Train.trainBatch(self, learningRate, inputs, targets)
+function Trainer.trainBatch(self, learningRate, inputs, targets)
   local opt = self.opt
 
   local loss = nil
@@ -61,14 +66,14 @@ function Train.trainBatch(self, learningRate, inputs, targets)
   return loss
 end
 
-function Train.predict(self, inputs)
+function Trainer.predict(self, inputs)
   -- disable flips, dropouts and batch normalization
   self.model:evaluate()
   local outputs = self.model:forward(inputs)
   return outputs:byte()
 end
 
-function Train.save(self, filepath)
+function Trainer.save(self, filepath)
   torch.save(filepath, self.model:get(3):clearState())
 end
 

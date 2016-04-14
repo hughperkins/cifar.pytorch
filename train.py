@@ -14,7 +14,8 @@ Options:
   --epoch_step EPOCHSTEP       epoch step [default: 25]
   --model MODEL                model name [default: vgg_bn_drop]
   --max_epoch MAXEPOCH         maximum number of iterations [default: 300]
-  --backend BACKEND            backend [default: nn]
+  --backend BACKEND            backend [default: cudnn]
+  --cudnnfastest CUDNNFASTEST  use cudnn 'fastest' mode y/n [default: y]
 """
 
 from __future__ import print_function, division
@@ -50,6 +51,7 @@ opt['weightDecay'] = float(args['--weightDecay'])
 opt['momentum'] = float(args['--momentum'])
 opt['model'] = args['--model']
 opt['backend'] = args['--backend']
+opt['cudnnfastest'] = args['--cudnnfastest'] == 'y'
 
 print(opt)
 data_dir = 'cifar-10-batches-py'
@@ -99,9 +101,9 @@ def loadData(data_dir, num_datafiles):
 
 
 # load the lua class
-Train = PyTorchHelpers.load_lua_class('train.lua', 'Train')
-train = Train(opt)
-print('train', train)
+Trainer = PyTorchHelpers.load_lua_class('train.lua', 'Trainer')
+trainer = Trainer(opt)
+print('trainer', trainer)
 
 # load data
 
@@ -123,15 +125,14 @@ print('data normalized check new mean/std:')
 print('  trainmean=%s trainstd=%s testmean=%s teststd=%s' %
       (trainData.mean(), trainData.std(), testData.mean(), testData.std()))
 
-batchesPerEpoch = NTrain // batchSize
-if devMode:
-  batchesPerEpoch = 3  # impatient developer :-P
-epoch = 0
-while True:
+def train(epoch, batchSize, learningRate):
   if epoch % 50 == 0:
     learningRate /= 2.0
-  print('epoch', epoch)
+    print('dropping learning rate to %s' % learningRate)
   epochLoss = 0
+  batchesPerEpoch = NTrain // batchSize
+  if devMode:
+    batchesPerEpoch = 3  # impatient developer :-P
   last = time.time()
   for b in range(batchesPerEpoch):
     # draw samples
@@ -140,16 +141,16 @@ while True:
     batchInputs = trainData[indexes]
     batchLabels = trainLabels[indexes]
 
-    loss = train.trainBatch(learningRate, batchInputs, batchLabels)
-    print('  epoch %s batch %s/%s loss %s' %(epoch, b, batchesPerEpoch, loss))
+    loss = trainer.trainBatch(learningRate, batchInputs, batchLabels)
+    now = time.time()
+    duration = now - last
+    last = now
+    print('  epoch %s batch %s/%s loss %s time %s' %(epoch, b, batchesPerEpoch, loss, duration))
     epochLoss += loss
 
-    if devMode:
-      now = time.time()
-      duration = now - last
-      print('batch time', duration)
-      last = now
+  return epochLoss
 
+def test(epoch, batchSize):
   # evaluate on test data
   numTestBatches = NTest // batchSize
   if devMode:
@@ -160,7 +161,7 @@ while True:
   for b in range(numTestBatches):
     batchInputs = testData[b * batchSize:(b+1) * batchSize]
     batchLabels = testLabels[b * batchSize:(b+1) * batchSize]
-    res = train.predict(batchInputs)
+    res = trainer.predict(batchInputs)
     top1 = res['top1'].asNumpyTensor()
     top5 = res['top5'].asNumpyTensor()
     labelsTiled5 = np.tile(batchLabels.reshape(batchSize, 1), (1, 5))
@@ -172,13 +173,19 @@ while True:
 
   testtop1acc = testNumTop1Right / testNumTotal * 100
   testtop5acc = testNumTop5Right / testNumTotal * 100
-  print('epoch %s trainloss=%s top1acc=%s top5acc=%s' %
-        (epoch, epochLoss, testtop1acc, testtop5acc))
-  epoch += 1
+  return testtop1acc, testtop5acc
 
-# from the lua:
-#for i=1,opt.max_epoch do
-#  train()
-#  test()
-#end
+for i in range(max_epoch):
+  epoch = i + 1
+  print('epoch', epoch)
+  trainLoss = train(epoch, batchSize, learningRate)
+  testtop1acc, testtop5acc = test(epoch, batchSize)
+  print('epoch %s trainloss=%s top1acc=%s top5acc=%s' %
+        (epoch, trainLoss, testtop1acc, testtop5acc))
+
+  # save model every 50 epochs
+  if epoch % 50 == 0:
+    filename = join(save, 'model.net')
+    print('==> saving model to %s' % filename)
+    trainer.save(filename)
 
