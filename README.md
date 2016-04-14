@@ -12,9 +12,16 @@ This readme is for pytorch version, which handles data loading and preprocessing
 
 ## Training
 
-NOT WORKING YET.  NOT EVEN WRITTEN YET! :-)
-
 ```bash
-python train.py --model vgg_bn_drop --save logs/vgg
+python train.py
 ```
+
+You should see the loss gradually decrease, and the test accuracy gradually decrease.
+
+# Differences from original lua version
+
+- data loading in python
+- preprocessing in python
+- no conversion from rgb to yuv (just because... haven't added it)
+- no graph for now (but... it's python... you can use all the matplot goodness you are used to using :-) )
 

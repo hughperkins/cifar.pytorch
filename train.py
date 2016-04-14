@@ -12,6 +12,7 @@ Options:
   --weightDecay WEIGHTDECAY    weightDecay [default: 0.0005]
   --momentum MOMENTUM          momentum [default: 0.9]
   --epoch_step EPOCHSTEP       epoch step [default: 25]
+  --save_every SAVEEVERY       epochs between saves [default: 50]
   --model MODEL                model name [default: vgg_bn_drop]
   --max_epoch MAXEPOCH         maximum number of iterations [default: 300]
   --backend BACKEND            backend [default: cudnn]
@@ -43,6 +44,7 @@ batchSize = int(args['--batchSize'])
 epoch_step = int(args['--epoch_step'])
 max_epoch = int(args['--max_epoch'])
 save = args['--save']
+save_every = int(args['--save_every'])
 learningRate = float(args['--learningRate'])
 learningRateDecay = float(args['--learningRateDecay'])
 
@@ -132,7 +134,7 @@ def train(epoch, batchSize, learningRate):
   epochLoss = 0
   batchesPerEpoch = NTrain // batchSize
   if devMode:
-    batchesPerEpoch = 7  # impatient developer :-P
+    batchesPerEpoch = 3  # impatient developer :-P
   last = time.time()
   for b in range(batchesPerEpoch):
     # draw samples
@@ -154,7 +156,7 @@ def test(epoch, batchSize):
   # evaluate on test data
   numTestBatches = NTest // batchSize
   if devMode:
-    numTestBatches = 8  # impatient developer :-P
+    numTestBatches = 3  # impatient developer :-P
   testNumRight = 0
   testNumTotal = numTestBatches * batchSize
   for b in range(numTestBatches):
@@ -178,7 +180,7 @@ for i in range(max_epoch):
         (epoch, trainLoss, testacc))
 
   # save model every 50 epochs
-  if epoch % 50 == 0:
+  if epoch % save_every == 0:
     filename = join(save, 'model.net')
     print('==> saving model to %s' % filename)
     trainer.save(filename)
