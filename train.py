@@ -7,14 +7,14 @@ Usage:
 Options:
   --save SAVE                  subdirectory to save logs [default: logs]
   --batchSize BATCHSIZE        batch size [default: 128]
-  --learningRate LEARNINGRATE learning rate [default: 1]
-  --learningRateDecay LRDECAY learning rate decay [default: 1e-7]
-  --weightDecay WEIGHTDECAY   weightDecay [default: 0.0005]
-  --momentum                  momentum [default: 0.9]
-  --epoch_step                epoch step [default: 25]
-  --model                     model name [default: vgg_bn_drop]
-  --max_epoch                 maximum number of iterations [default: 300]
-  --backend                   backend [default: nn]
+  --learningRate LEARNINGRATE  learning rate [default: 1]
+  --learningRateDecay LRDECAY  learning rate decay [default: 1e-7]
+  --weightDecay WEIGHTDECAY    weightDecay [default: 0.0005]
+  --momentum MOMENTUM          momentum [default: 0.9]
+  --epoch_step EPOCHSTEP       epoch step [default: 25]
+  --model MODEL                model name [default: vgg_bn_drop]
+  --max_epoch MAXEPOCH         maximum number of iterations [default: 300]
+  --backend BACKEND            backend [default: nn]
 """
 
 from __future__ import print_function, division
@@ -39,7 +39,7 @@ opt = {}
 
 # python-side params:
 batchSize = int(args['--batchSize'])
-epoch_step = int(args['--epoch_step']
+epoch_step = int(args['--epoch_step'])
 max_epoch = int(args['--max_epoch'])
 save = args['--save']
 learningRate = float(args['--learningRate'])
@@ -51,6 +51,7 @@ opt['momentum'] = float(args['--momentum'])
 opt['model'] = args['--model']
 opt['backend'] = args['--backend']
 
+print(opt)
 data_dir = 'cifar-10-batches-py'
 num_datafiles = 5
 devMode = False
@@ -99,7 +100,7 @@ def loadData(data_dir, num_datafiles):
 
 # load the lua class
 Train = PyTorchHelpers.load_lua_class('train.lua', 'Train')
-train = ResidualTrainer(opt)
+train = Train(opt)
 print('train', train)
 
 # load data
@@ -127,10 +128,10 @@ if devMode:
   batchesPerEpoch = 3  # impatient developer :-P
 epoch = 0
 while True:
-#  print('epoch', epoch)
-  learningRate = epochToLearningRate(epoch)
+  if epoch % 50 == 0:
+    learningRate /= 2.0
+  print('epoch', epoch)
   epochLoss = 0
-#  batchInputs 
   last = time.time()
   for b in range(batchesPerEpoch):
     # draw samples

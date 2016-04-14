@@ -2,7 +2,6 @@ require 'xlua'
 require 'optim'
 require 'cunn'
 require 'batchflip'
-dofile './provider.lua'
 
 local Train = torch.class('Train')
 
@@ -45,12 +44,10 @@ function Train.trainBatch(self, learningRate, inputs, targets)
 
   optimState.learningRate = learningRate
   model:training()
-  local inputs = provider.trainData.data:index(1,v)
-  targets:copy(provider.trainData.labels:index(1,v))
 
   local feval = function(x)
-    if x ~= parameters then parameters:copy(x) end
-    gradParameters:zero()
+    if x ~= self.parameters then self.parameters:copy(x) end
+    self.gradParameters:zero()
     
     local outputs = model:forward(inputs)
     local f = criterion:forward(outputs, targets)
@@ -59,9 +56,9 @@ function Train.trainBatch(self, learningRate, inputs, targets)
 
     confusion:batchAdd(outputs, targets)
 
-    return f,gradParameters
+    return f, self.gradParameters
   end
-  optim.sgd(feval, parameters, optimState)
+  optim.sgd(feval, self.parameters, optimState)
 end
 
 function Train.testBatch(self, inputs)
