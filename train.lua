@@ -70,7 +70,8 @@ function Trainer.predict(self, inputs)
   -- disable flips, dropouts and batch normalization
   self.model:evaluate()
   local outputs = self.model:forward(inputs)
-  return outputs:byte()
+  local _, predictions = outputs:max(2)
+  return predictions:byte()
 end
 
 function Trainer.save(self, filepath)

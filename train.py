@@ -132,7 +132,7 @@ def train(epoch, batchSize, learningRate):
   epochLoss = 0
   batchesPerEpoch = NTrain // batchSize
   if devMode:
-    batchesPerEpoch = 3  # impatient developer :-P
+    batchesPerEpoch = 7  # impatient developer :-P
   last = time.time()
   for b in range(batchesPerEpoch):
     # draw samples
@@ -155,33 +155,27 @@ def test(epoch, batchSize):
   numTestBatches = NTest // batchSize
   if devMode:
     numTestBatches = 3  # impatient developer :-P
-  testNumTop1Right = 0
-  testNumTop5Right = 0
+  testNumRight = 0
   testNumTotal = numTestBatches * batchSize
   for b in range(numTestBatches):
     batchInputs = testData[b * batchSize:(b+1) * batchSize]
     batchLabels = testLabels[b * batchSize:(b+1) * batchSize]
-    res = trainer.predict(batchInputs)
-    top1 = res['top1'].asNumpyTensor()
-    top5 = res['top5'].asNumpyTensor()
-    labelsTiled5 = np.tile(batchLabels.reshape(batchSize, 1), (1, 5))
-    top1_correct = (top1 == batchLabels).sum()
-    top5_correct = (top5 == labelsTiled5).sum()
-    testNumTop1Right += top1_correct
-    testNumTop5Right += top5_correct
-#    print('correct top1=%s top5=%s', top1_correct, top5_correct)
+    pred = trainer.predict(batchInputs).asNumpyTensor().reshape(batchSize)
+#    print('pred', pred)
+#    print('batchLabels', batchLabels)
+    batchCorrect = (pred == batchLabels).sum()
+    testNumRight += batchCorrect
 
-  testtop1acc = testNumTop1Right / testNumTotal * 100
-  testtop5acc = testNumTop5Right / testNumTotal * 100
-  return testtop1acc, testtop5acc
+  testacc = testNumRight / testNumTotal * 100
+  return testacc
 
 for i in range(max_epoch):
   epoch = i + 1
   print('epoch', epoch)
   trainLoss = train(epoch, batchSize, learningRate)
-  testtop1acc, testtop5acc = test(epoch, batchSize)
-  print('epoch %s trainloss=%s top1acc=%s top5acc=%s' %
-        (epoch, trainLoss, testtop1acc, testtop5acc))
+  testacc = test(epoch, batchSize)
+  print('epoch %s trainloss=%s testacc=%s' %
+        (epoch, trainLoss, testacc))
 
   # save model every 50 epochs
   if epoch % 50 == 0:
