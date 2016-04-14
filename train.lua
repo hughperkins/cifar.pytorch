@@ -25,6 +25,7 @@ function Trainer.__init(self, opt)
      if opt.cudnnfastest then
        print('Using cudnn \'fastest\' mode')
        cudnn.fastest = true
+       cudnn.benchmark = true
      end
      cudnn.convert(model:get(3), cudnn)
   end

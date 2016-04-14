@@ -154,7 +154,7 @@ def test(epoch, batchSize):
   # evaluate on test data
   numTestBatches = NTest // batchSize
   if devMode:
-    numTestBatches = 3  # impatient developer :-P
+    numTestBatches = 8  # impatient developer :-P
   testNumRight = 0
   testNumTotal = numTestBatches * batchSize
   for b in range(numTestBatches):
