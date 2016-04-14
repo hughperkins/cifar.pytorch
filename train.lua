@@ -40,6 +40,7 @@ end
 function Train.trainBatch(self, learningRate, inputs, targets)
   local opt = self.opt
 
+  local loss = nil
   self.optimState.learningRate = learningRate
   self.model:training()
   self.cutargets = self.cutargets or torch.CudaTensor(targets:size())
@@ -50,16 +51,17 @@ function Train.trainBatch(self, learningRate, inputs, targets)
     self.gradParameters:zero()
     
     local outputs = self.model:forward(inputs)
-    local f = self.criterion:forward(outputs, self.cutargets)
+    loss = self.criterion:forward(outputs, self.cutargets)
     local df_do = self.criterion:backward(outputs, self.cutargets)
     self.model:backward(inputs, df_do)
 
-    return f, self.gradParameters
+    return loss, self.gradParameters
   end
   optim.sgd(feval, self.parameters, self.optimState)
+  return loss
 end
 
-function Train.testBatch(self, inputs)
+function Train.predict(self, inputs)
   -- disable flips, dropouts and batch normalization
   self.model:evaluate()
   local outputs = self.model:forward(inputs)
