@@ -53,7 +53,7 @@ source ~/torch/install/bin/torch-activate
 python train.py
 ```
 
-You should see the loss gradually decrease, and the test accuracy gradually decrease.
+You should see the loss gradually decrease, and the test accuracy gradually increase.
 
 Options:
 ```
