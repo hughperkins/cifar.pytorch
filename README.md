@@ -55,10 +55,28 @@ python train.py
 
 You should see the loss gradually decrease, and the test accuracy gradually decrease.
 
+Options:
+```
+  --save SAVE                  subdirectory to save logs [default: logs]
+  --batchSize BATCHSIZE        batch size [default: 128]
+  --learningRate LEARNINGRATE  learning rate [default: 1]
+  --learningRateDecay LRDECAY  learning rate decay [default: 1e-7]
+  --weightDecay WEIGHTDECAY    weightDecay [default: 0.0005]
+  --momentum MOMENTUM          momentum [default: 0.9]
+  --epoch_step EPOCHSTEP       epoch step [default: 25]
+  --save_every SAVEEVERY       epochs between saves [default: 50]
+  --model MODEL                model name [default: vgg_bn_drop]
+  --max_epoch MAXEPOCH         maximum number of iterations [default: 300]
+  --backend BACKEND            backend [nn|cudnn] [default: cudnn]
+  --cudnnfastest CUDNNFASTEST  use cudnn 'fastest' mode y/n [default: y]
+```
+
 # Differences from original lua version
 
 - data loading in python
 - preprocessing in python
 - no conversion from rgb to yuv (just because... haven't added it)
 - no graph for now (but... it's python... you can use all the matplot goodness you are used to using :-) )
+- defaults to cudnn, and cudnn.fastest (though switchable via commandline options)
+- (hmmm, neither version supports OpenCL it seems... I should probably update that...)
 
