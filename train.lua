@@ -1,9 +1,9 @@
 require 'xlua'
 require 'optim'
-require 'cunn'
 require 'paths'
 require 'sys'
 require 'model_helper'
+require 'nn'
 dofile './provider.lua'
 local c = require 'trepl.colorize'
 
@@ -20,6 +20,7 @@ opt = lapp[[
    --backend                  (default nn)            backend
    --continue                 (default 1)            continue from saved model
    --fastest                  (default 0)            cudnn fastest
+   --type                     (default cuda)          cuda/float/cl
 ]]
 
 print(opt)
@@ -45,6 +46,20 @@ do -- data augmentation module
   end
 end
 
+local function cast(t)
+   if opt.type == 'cuda' then
+      require 'cunn'
+      return t:cuda()
+   elseif opt.type == 'float' then
+      return t:float()
+   elseif opt.type == 'cl' then
+      require 'clnn'
+      return t:cl()
+   else
+      error('Unknown type '..opt.type)
+   end
+end
+
 print(c.blue '==>' ..' configuring model')
 
 paths.mkdir(opt.save)
@@ -68,7 +83,8 @@ optimState = {
 
 local model = nn.Sequential()
 model:add(nn.BatchFlip():float())
-model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
+model:add(cast(nn.Copy('torch.FloatTensor', torch.type(cast(torch.Tensor())))))
+model:add(cast(dofile('models/'..opt.model..'.lua')))
 model:get(2).updateGradInput = function(input) return end
 
 if opt.continue == 1 then
@@ -88,7 +104,7 @@ end
 
 if #model == 2 then
   print('Creating initial net')
-  model:add(dofile('models/'..opt.model..'.lua'):cuda())
+  model:add(cast(dofile('models/'..opt.model..'.lua')))
   if opt.backend == 'cudnn' then
      cudnn.convert(model:get(3), cudnn)
   end
@@ -112,7 +128,7 @@ parameters,gradParameters = model:getParameters()
 
 
 print(c.blue'==>' ..' setting criterion')
-criterion = nn.CrossEntropyCriterion():cuda()
+criterion = cast(nn.CrossEntropyCriterion())
 
 
 function train(epoch)
@@ -123,7 +139,7 @@ function train(epoch)
 
   print(c.blue '==>'.." online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
 
-  local targets = torch.CudaTensor(opt.batchSize)
+  local targets = cast(torch.FloatTensor(opt.batchSize))
   local indices = torch.randperm(provider.trainData.data:size(1)):long():split(opt.batchSize)
   -- remove last element so that all the batches have equal size
   indices[#indices] = nil
