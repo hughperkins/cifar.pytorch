@@ -13,21 +13,22 @@ local Trainer = torch.class('Trainer')
 --  momentum
 function Trainer.__init(self, opt)
   self.opt = opt
+  self.backend = opt.backend
   local model = nn.Sequential()
   model:add(nn.BatchFlip():float())
-  model:add(nn.Copy('torch.FloatTensor','torch.CudaTensor'):cuda())
-  model:add(dofile('models/'..opt.model..'.lua'):cuda())
+  model:add(self:cast(nn.Copy('torch.FloatTensor', torch.type(self:cast(torch.Tensor())))))
+  model:add(self:cast(dofile('models/'..opt.model..'.lua')))
   model:get(2).updateGradInput = function(input) return end
 
   if opt.backend == 'cudnn' then
-     print('using cudnn')
-     require 'cudnn'
-     if opt.cudnnfastest then
-       print('Using cudnn \'fastest\' mode')
-       cudnn.fastest = true
-       cudnn.benchmark = true
-     end
-     cudnn.convert(model:get(3), cudnn)
+    print('using cudnn')
+    require 'cudnn'
+    if opt.cudnnfastest then
+      print('Using cudnn \'fastest\' mode')
+      cudnn.fastest = true
+      cudnn.benchmark = true
+    end
+    cudnn.convert(model:get(3), cudnn)
   end
   self.model = model
 
@@ -43,13 +44,28 @@ function Trainer.__init(self, opt)
   }
 end
 
+function Trainer.cast(self, t)
+  local backend = self.backend
+  if backend == 'cuda' then
+    require 'cunn'
+    return t:cuda()
+  elseif backend == 'float' then
+    return t:float()
+  elseif backend == 'cl' then
+    require 'clnn'
+    return t:cl()
+  else
+    error('Unknown type '..opt.type)
+  end
+end
+
 function Trainer.trainBatch(self, learningRate, inputs, targets)
   local opt = self.opt
 
   local loss = nil
   self.optimState.learningRate = learningRate
   self.model:training()
-  self.cutargets = self.cutargets or torch.CudaTensor(targets:size())
+  self.cutargets = self.cutargets or self:cast(torch.Tensor(target:size()))
   self.cutargets:resize(targets:size())
   self.cutargets:copy(targets)
   local feval = function(x)

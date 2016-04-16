@@ -15,7 +15,7 @@ Options:
   --save_every SAVEEVERY       epochs between saves [default: 50]
   --model MODEL                model name [default: vgg_bn_drop]
   --max_epoch MAXEPOCH         maximum number of iterations [default: 300]
-  --backend BACKEND            backend [default: cudnn]
+  --backend BACKEND            backend float|cuda|cl [default: cuda]
   --cudnnfastest CUDNNFASTEST  use cudnn 'fastest' mode y/n [default: y]
 """
 
