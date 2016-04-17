@@ -55,7 +55,7 @@ function Trainer.cast(self, t)
     require 'clnn'
     return t:cl()
   else
-    error('Unknown type '..opt.type)
+    error('Unknown backend '.. self.backend)
   end
 end
 
@@ -65,7 +65,7 @@ function Trainer.trainBatch(self, learningRate, inputs, targets)
   local loss = nil
   self.optimState.learningRate = learningRate
   self.model:training()
-  self.cutargets = self.cutargets or self:cast(torch.Tensor(target:size()))
+  self.cutargets = self.cutargets or self:cast(torch.Tensor(targets:size()))
   self.cutargets:resize(targets:size())
   self.cutargets:copy(targets)
   local feval = function(x)
