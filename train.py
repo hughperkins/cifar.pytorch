@@ -106,7 +106,6 @@ Trainer = PyTorchHelpers.load_lua_class('train.lua', 'Trainer')
 trainer = Trainer(opt)
 
 # load data
-
 NTrain, trainData, trainLabels, NTest, testData, testLabels = loadData(data_dir, num_datafiles)
 
 print('data loaded :-)')
