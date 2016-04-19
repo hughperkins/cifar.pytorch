@@ -92,5 +92,6 @@ end
 
 function Trainer.save(self, filepath)
   torch.save(filepath, self.model:get(3):clearState())
+  collectgarbage();   collectgarbage()
 end
 
