@@ -67,7 +67,7 @@ Options:
   --save_every SAVEEVERY       epochs between saves [default: 50]
   --model MODEL                model name [default: vgg_bn_drop]
   --max_epoch MAXEPOCH         maximum number of iterations [default: 300]
-  --backend BACKEND            backend [nn|cudnn] [default: cudnn]
+  --backend BACKEND            backend [float|cuda|cl] [default: cudnn]
   --cudnnfastest CUDNNFASTEST  use cudnn 'fastest' mode y/n [default: y]
 ```
 
@@ -78,5 +78,9 @@ Options:
 - no conversion from rgb to yuv (just because... haven't added it)
 - no graph for now (but... it's python... you can use all the matplot goodness you are used to using :-) )
 - defaults to cudnn, and cudnn.fastest (though switchable via commandline options)
-- (hmmm, neither version supports OpenCL it seems... I should probably update that...)
+
+# Recent changes
+
+19 April:
+* added OpenCL support
 
