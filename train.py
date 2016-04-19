@@ -55,7 +55,6 @@ opt['model'] = args['--model']
 opt['backend'] = args['--backend']
 opt['cudnnfastest'] = args['--cudnnfastest'] == 'y'
 
-print(opt)
 data_dir = 'cifar-10-batches-py'
 num_datafiles = 5
 devMode = False
@@ -105,7 +104,6 @@ def loadData(data_dir, num_datafiles):
 # load the lua class
 Trainer = PyTorchHelpers.load_lua_class('train.lua', 'Trainer')
 trainer = Trainer(opt)
-print('trainer', trainer)
 
 # load data
 

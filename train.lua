@@ -1,6 +1,5 @@
 require 'xlua'
 require 'optim'
-require 'cunn'
 require 'image'
 require 'batchflip'
 
@@ -35,7 +34,7 @@ function Trainer.__init(self, opt)
   print(model)
 
   self.parameters, self.gradParameters = model:getParameters()
-  self.criterion = nn.CrossEntropyCriterion():cuda()
+  self.criterion = self:cast(nn.CrossEntropyCriterion())
   self.optimState = {
     learningRate = opt.learningRate,
     weightDecay = opt.weightDecay,
