@@ -1,5 +1,5 @@
 """
-Trains cifar on residual network
+Trains cifar on bn network
 
 Usage:
   run.py [options]
